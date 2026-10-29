@@ -15,6 +15,11 @@ export function mountOrbit(Phaser, services) {
   const policy = new AdPolicy();
   let sound = memorySave.sound, audio = null, sceneReady = false, accumulator = 0, overHandled = false;
   let particles = [], trail = [], stage = 1, flash = 0;
+  let musicReady=!musicEnabled;
+  if(musicEnabled)void services.music.prepare().then(()=>{
+    musicReady=true;
+    if(sceneReady&&model.state==="ready"){el("main").disabled=false;el("main").textContent="Play";}
+  });
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const stars = Array.from({length:48},(_,i)=>({x:(i*137.51)%400,y:(i*91.73)%440,r:i%4===0?1.3:.6}));
   function beep(freq=500, duration=.08, shape="sine", volume=.06) {
@@ -100,6 +105,7 @@ export function mountOrbit(Phaser, services) {
   };
   el("music").onclick=()=>{
     musicEnabled=!musicEnabled;memorySave.music=musicEnabled;musicLabel();save();
+    if(!musicEnabled&&sceneReady&&model.state==="ready"){el("main").disabled=false;el("main").textContent="Play";}
     services.music.setEnabled(musicEnabled,model.state==="playing");
     analytics("music_change",{enabled:musicEnabled});
   };
@@ -142,7 +148,7 @@ export function mountOrbit(Phaser, services) {
       this.ink=this.add.graphics();this.input.on("pointerdown",shift);
       this.input.keyboard?.on("keydown-SPACE",event=>{event.preventDefault();if(!event.repeat&&model.state==="playing")shift();});
       this.input.keyboard?.on("keydown-ESC",()=>model.state==="playing"?pause():model.state==="paused"?resume():null);
-      sceneReady=true;el("main").disabled=false;el("main").textContent="Play";
+      sceneReady=true;el("main").disabled=!musicReady;el("main").textContent=musicReady?"Play":"Preparing music…";
       analytics("game_ready");
     }
     update(_time, delta){

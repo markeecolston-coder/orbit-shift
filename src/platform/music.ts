@@ -75,11 +75,15 @@ export class MusicPlayer {
   private started=0;
   private generation=0;
   private wanted=false;
+  async prepare():Promise<void> {
+    try {this.buffer ||= renderEdm(44100);await this.buffer;}
+    catch {this.buffer=null;this.onState('unavailable');}
+  }
   unlock():void {
     try {
       this.context ||= new AudioContext();
       void this.context.resume().catch(()=>this.onState('unavailable'));
-      this.buffer ||= renderEdm(this.context.sampleRate);
+      void this.prepare();
       // Attach a rejection handler immediately, including when disabled during preparation.
       void this.buffer.catch(()=>{this.buffer=null;this.onState('unavailable');});
     } catch {this.onState('unavailable');}
