@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 test('phone boot, touch input, pause, resume, sound and layout',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('#os-main')).toHaveText('Play');
   await expect(page.locator('canvas')).toBeVisible();
   await page.screenshot({path:'test-results/mobile-menu.png'});
@@ -21,7 +21,7 @@ test('phone boot, touch input, pause, resume, sound and layout',async({page})=>{
   expect(fits).toBe(true);expect(errors).toEqual([]);
 });
 test('loss, persisted high score, practice rescue once, restart',async({page})=>{
-  await page.goto('/');await page.locator('#os-main').tap();
+  await page.goto('./');await page.locator('#os-main').tap();
   await expect(page.locator('#os-main')).toHaveText('Play again',{timeout:35000});
   const score=Number(await page.locator('#os-score').innerText());expect(score).toBeGreaterThan(0);
   await expect(page.locator('#os-best')).toHaveText(String(score));
@@ -30,11 +30,12 @@ test('loss, persisted high score, practice rescue once, restart',async({page})=>
   await page.locator('#os-main').tap();await expect(page.locator('#os-overlay')).toBeHidden();
   await expect(page.locator('#os-main')).toHaveText('Play again',{timeout:35000});
   await expect(page.locator('#os-rescue')).toBeHidden();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('orbit-shift-v1')||'{}').rounds)).toBe(1);
   await page.locator('#os-main').tap();await expect(page.locator('#os-overlay')).toBeHidden();
   await page.reload();expect(Number(await page.locator('#os-best').innerText())).toBeGreaterThanOrEqual(score);
 });
 test('320px layout and tutorial',async({page})=>{
-  await page.setViewportSize({width:320,height:640});await page.goto('/');
+  await page.setViewportSize({width:320,height:640});await page.goto('./');
   await expect(page.locator('#os-main')).toHaveText('Play');
   await page.locator('#os-help').tap();await expect(page.locator('#os-info')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

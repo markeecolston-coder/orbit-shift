@@ -35,12 +35,16 @@ export function mountOrbit(Phaser, services) {
     el("chain").textContent="×"+model.multiplier();stage=1+Math.floor(model.seconds/20);
     el("level").textContent="SECTOR "+String(stage).padStart(2,"0");
   }
-  function start(){
-    if(!sceneReady)return;
+  let starting=false, finalized=false;
+  async function start(){
+    if(!sceneReady||starting)return;
+    starting=true;
+    if(services.native){el("main").disabled=true;el("main").textContent="Preparing test build…";await services.ads.prepare();el("main").disabled=false;}
+    starting=false;finalized=false;
     model=new OrbitModel();model.start();policy.newRound();accumulator=0;overHandled=false;
     particles=[];trail=[];flash=0;el("overlay").hidden=true;el("info").hidden=true;
     el("pause").disabled=false;el("pause").textContent="Pause";
-    el("hint").textContent="Tap the playfield to change orbits";analytics("round_start");void services.ads.prepare();beep(660);sync();
+    el("hint").textContent="Tap the playfield to change orbits";analytics("round_start");beep(660);sync();
   }
   function pause(){
     if(model.state!=="playing")return;model.pause();accumulator=0;
@@ -57,8 +61,19 @@ export function mountOrbit(Phaser, services) {
   async function roundOver(){
     if(overHandled)return;overHandled=true;
     const points=Math.floor(model.score),oldBest=memorySave.best;
-    memorySave.best=Math.max(oldBest,points);memorySave.rounds++;save();policy.completed();
+    memorySave.best=Math.max(oldBest,points);save();
     el("pause").disabled=true;
+    overlay(points>oldBest?"NEW PERSONAL BEST":"ANOTHER ORBIT AWAITS",String(points)+" points",
+      model.lights+" lights collected · best chain "+model.bestCombo+". Take a breath, then try again.","Play again",!model.rescued&&(!services.native||services.ads.rewardReady));
+    el("rescue").textContent=services.native?"Watch test ad · continue once":"Practice rescue · once";
+    if(services.native && !model.rescued && services.ads.rewardReady)el("main").textContent="Finish round";
+    else if(services.native || model.rescued)await finishRound();
+    el("hint").textContent="Every run is a new pattern";
+    analytics("round_end",{score:points,seconds:Math.floor(model.seconds),lights:model.lights,rescued:model.rescued});
+    beep(150,.24,"triangle",.09);flash=.35;
+  }
+  async function finishRound(){
+    if(finalized)return;finalized=true;memorySave.rounds++;save();policy.completed();
     if(policy.eligible()&&services.ads.interstitialReady){
       overlay("ROUND COMPLETE","Nice orbit.","A test ad is ready. Your next round starts when you choose.","Please wait");
       el("main").disabled=true;
@@ -66,14 +81,17 @@ export function mountOrbit(Phaser, services) {
       if(await services.ads.interstitial())policy.shown();
       el("main").disabled=false;
     }
-    overlay(points>oldBest?"NEW PERSONAL BEST":"ANOTHER ORBIT AWAITS",String(points)+" points",
-      model.lights+" lights collected · best chain "+model.bestCombo+". Take a breath, then try again.","Play again",!model.rescued&&(!services.native||services.ads.rewardReady));
-    el("rescue").textContent=services.native?"Watch test ad · continue once":"Practice rescue · once";
-    el("hint").textContent="Every run is a new pattern";
-    analytics("round_end",{score:points,seconds:Math.floor(model.seconds),lights:model.lights,rescued:model.rescued});
-    beep(150,.24,"triangle",.09);flash=.35;
+
+    if(services.native){overlay("ROUND COMPLETE",Math.floor(model.score)+" points",model.lights+" lights collected. Ready for another orbit?","Play again",false);}
   }
-  el("main").onclick=()=>model.state==="paused"?resume():start();
+  el("main").onclick=async()=>{
+    if(model.state==="paused"){resume();return;}
+    if(model.state==="over"&&!finalized){
+      await finishRound();
+      if(services.native)return;
+    }
+    void start();
+  };
   el("pause").onclick=pause;
   el("sound").onclick=()=>{sound=!sound;memorySave.sound=sound;soundLabel();save();beep(700);analytics("sound_change",{enabled:sound});};
   el("help").onclick=()=>{
