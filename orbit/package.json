@@ -8,7 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
     "test:browser": "playwright test",
-    "android:prepare": "npm run build && cap add android && node scripts/configure-android.mjs && cap sync android"
+    "android:prepare": "npm run build && cap add android && node scripts/configure-android.mjs && cap sync android",
+    "prebuild": "tsx scripts/build-music.ts",
+    "predev": "tsx scripts/build-music.ts"
   },
   "dependencies": {
     "phaser": "3.90.0",
