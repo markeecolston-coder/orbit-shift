@@ -1,0 +1,10 @@
+import Phaser from 'phaser';
+import './style.css';
+import { markup } from './game/markup';
+import { mountOrbit } from './game/renderer';
+import { createServices } from './platform/services';
+const app = document.querySelector<HTMLElement>('#app');
+if (!app) throw new Error('Missing application root');
+app.innerHTML = markup;
+const services = createServices();
+mountOrbit(Phaser, services);

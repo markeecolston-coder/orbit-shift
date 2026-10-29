@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {GameStore} from '../src/platform/storage';
+test('invalid saved data is sanitized',()=>{Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify({best:'wrong',rounds:-4,sound:'yes'}),setItem:()=>{}}});assert.deepEqual(new GameStore().load(),{best:0,rounds:0,sound:false});});
+test('blocked storage degrades to memory',()=>{Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem(){throw new Error('blocked');},setItem(){throw new Error('blocked');}}});const s=new GameStore();s.save({best:123,sound:true,rounds:1});assert.equal(s.available,false);assert.equal(s.load().best,123);});

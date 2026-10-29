@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+const manifest='android/app/src/main/AndroidManifest.xml';
+let xml=fs.readFileSync(manifest,'utf8');
+xml=xml.replace('<application','<application android:usesCleartextTraffic="false"');
+xml=xml.replace('</application>','<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713" /></application>');
+xml=xml.replace('android:screenOrientation="unspecified"','android:screenOrientation="portrait"');
+if(!xml.includes('android:screenOrientation='))xml=xml.replace('<activity','<activity android:screenOrientation="portrait"');
+fs.writeFileSync(manifest,xml);
+const gradle='android/app/build.gradle';
+let build=fs.readFileSync(gradle,'utf8').replace('versionCode 1','versionCode '+(process.env.GITHUB_RUN_NUMBER||'1'));
+fs.writeFileSync(gradle,build);

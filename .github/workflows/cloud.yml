@@ -1,0 +1,96 @@
+name: Cloud tests, Pages and Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: orbit-cloud-main
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies or bootstrap lock
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - name: Save mobile browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-browser-evidence
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependency-lock
+          path: package-lock.json
+      - name: Preserve bootstrap lock in source
+        run: |
+          if ! git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "Pin cloud-verified dependency graph"
+            git push
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  pages:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - id: deployment
+        uses: actions/deploy-pages@v4
+  android:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dependency-lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - name: Package Android test build
+        env:
+          VITE_TEST_ADS: 'true'
+        run: |
+          npm run android:prepare
+          chmod +x android/gradlew
+          cd android
+          ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbit-shift-android-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

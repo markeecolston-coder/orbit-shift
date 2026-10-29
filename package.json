@@ -1,0 +1,28 @@
+{
+  "name": "orbit-shift",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "test:browser": "playwright test",
+    "android:prepare": "npm run build && cap add android && node scripts/configure-android.mjs && cap sync android"
+  },
+  "dependencies": {
+    "phaser": "3.90.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor-community/admob": "8.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.12",
+    "tsx": "^4.20.6",
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^22.18.0"
+  }
+}
