@@ -99,6 +99,8 @@ export class MusicPlayer {
     try {
       const buffer=await this.buffer;
       if(generation!==this.generation||!this.wanted||!this.enabled)return;
+      await this.context.resume();
+      if(generation!==this.generation||!this.wanted||!this.enabled)return;
       if(this.context.state!=='running'){this.onState('unavailable');return;}
       const source=this.context.createBufferSource(),gain=this.context.createGain();
       source.buffer=buffer;source.loop=true;gain.gain.setValueAtTime(.001,this.context.currentTime);
