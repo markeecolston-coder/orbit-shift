@@ -1,0 +1,28 @@
+name: Publish phone-downloadable test APK
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful cloud build run ID
+        required: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  share:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve verified APK and publish a test prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
+          conclusion=$(gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" --jq '.conclusion')
+          test "$conclusion" = success
+          source_sha=$(gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" --jq '.head_sha')
+          gh run download "$BUILD_RUN_ID" --name orbit-shift-android-test-apk --dir apk
+          mv apk/app-debug.apk apk/orbit-shift-test.apk
+          gh release create "android-test-$BUILD_RUN_ID" apk/orbit-shift-test.apk --target "$source_sha" --title "Orbit Shift Android test" --prerelease --notes "Debug-signed Android test build from a successful cloud run. Google demo ads only; production advertising disabled. Not a Google Play production release. Install only for testing."
