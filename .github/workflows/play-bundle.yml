@@ -3,6 +3,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+defaults:
+  run:
+    working-directory: orbit
 jobs:
   bundle:
     runs-on: ubuntu-latest
@@ -29,5 +32,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: orbit-shift-UNSIGNED-not-uploadable-to-Play
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: orbit/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error

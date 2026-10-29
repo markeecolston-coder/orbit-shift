@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+defaults:
+  run:
+    working-directory: orbit
 concurrency:
   group: orbit-cloud-main
   cancel-in-progress: true
@@ -31,13 +34,13 @@ jobs:
         with:
           name: mobile-browser-evidence
           path: |
-            test-results/
-            playwright-report/
+            orbit/test-results/
+            orbit/playwright-report/
           retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: dependency-lock
-          path: package-lock.json
+          path: orbit/package-lock.json
       - name: Preserve bootstrap lock in source
         run: |
           if ! git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
@@ -49,7 +52,7 @@ jobs:
           fi
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: orbit/dist
   pages:
     needs: verify
     runs-on: ubuntu-latest
@@ -71,6 +74,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dependency-lock
+          path: orbit
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -93,7 +97,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: orbit-shift-android-test-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: orbit/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
   live-check:
@@ -104,6 +108,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dependency-lock
+          path: orbit
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -119,5 +124,5 @@ jobs:
         with:
           name: deployed-mobile-evidence
           path: |
-            test-results/
-            playwright-report/
+            orbit/test-results/
+            orbit/playwright-report/

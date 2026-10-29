@@ -10,7 +10,7 @@
       "onAutoForward": "openBrowser"
     }
   },
-  "postCreateCommand": "npm ci",
+  "postCreateCommand": "npm --prefix orbit ci",
   "customizations": {
     "vscode": {
       "extensions": [

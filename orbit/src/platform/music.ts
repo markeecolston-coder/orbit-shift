@@ -84,8 +84,6 @@ export class MusicPlayer {
       this.context ||= new AudioContext();
       void this.context.resume().catch(()=>this.onState('unavailable'));
       void this.prepare();
-      // Attach a rejection handler immediately, including when disabled during preparation.
-      void this.buffer.catch(()=>{this.buffer=null;this.onState('unavailable');});
     } catch {this.onState('unavailable');}
   }
   async play(reset=false):Promise<void> {
