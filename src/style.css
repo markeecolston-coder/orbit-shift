@@ -32,3 +32,5 @@ html{background:#090e20;color:#f3f6ff;color-scheme:dark}body{margin:0;min-height
 #orbit-shift .os-status:empty{display:none}#orbit-shift .os-status{font-size:12px;color:var(--os-aqua);text-align:center}
 #orbit-shift #os-info{padding:10px;background:#131d38;border-radius:12px}
 @media(max-width:350px){#orbit-shift{padding:12px 8px}#orbit-shift h2{font-size:22px}#orbit-shift .os-panel{padding:14px}#orbit-shift .os-panel h3{font-size:25px}#orbit-shift .os-panel p{margin:8px 0}}
+
+#orbit-shift .os-top{flex-wrap:wrap}#orbit-shift .os-actions{gap:5px}#orbit-shift .os-actions button{padding:9px 10px;font-size:12px}

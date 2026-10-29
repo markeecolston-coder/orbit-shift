@@ -6,6 +6,11 @@ export function mountOrbit(Phaser, services) {
   const analytics = (name,data={})=>services.events.record(name,data);
   let memorySave = services.store.load();
   function save(){services.store.save(memorySave);if(!services.store.available)el("status").textContent="Storage is restricted here. Best score lasts for this open game.";}
+  let musicEnabled=memorySave.music;
+  services.music.onState=state=>{root.dataset.music=state;};
+  services.music.setEnabled(musicEnabled,false);
+  function musicLabel(){el("music").textContent=musicEnabled?"Music on":"Music off";el("music").setAttribute("aria-pressed",String(musicEnabled));}
+  musicLabel();
   let model = new OrbitModel();
   const policy = new AdPolicy();
   let sound = memorySave.sound, audio = null, sceneReady = false, accumulator = 0, overHandled = false;
@@ -44,22 +49,22 @@ export function mountOrbit(Phaser, services) {
     model=new OrbitModel();model.start();policy.newRound();accumulator=0;overHandled=false;
     particles=[];trail=[];flash=0;el("overlay").hidden=true;el("info").hidden=true;
     el("pause").disabled=false;el("pause").textContent="Pause";
-    el("hint").textContent="Tap the playfield to change orbits";analytics("round_start");beep(660);sync();
+    el("hint").textContent="Tap the playfield to change orbits";void services.music.play(true);analytics("round_start");beep(660);sync();
   }
   function pause(){
-    if(model.state!=="playing")return;model.pause();accumulator=0;
+    if(model.state!=="playing")return;model.pause();services.music.pause();accumulator=0;
     overlay("TAKE YOUR TIME","Paused.","Your orbit is waiting. Resume when you are ready.","Resume");
     el("pause").disabled=true;analytics("pause");
   }
   function resume(){
-    if(model.state!=="paused")return;model.resume();accumulator=0;
+    if(model.state!=="paused")return;model.resume();void services.music.play();accumulator=0;
     el("overlay").hidden=true;el("pause").disabled=false;analytics("resume");beep(520,.06);
   }
   function burst(angle,radius,color,n){
     for(let i=0;i<(reducedMotion?3:n);i++){const a=i/n*TAU;particles.push({x:200+Math.cos(angle)*radius,y:220+Math.sin(angle)*radius,vx:Math.cos(a)*85,vy:Math.sin(a)*85,life:.6,color});}
   }
   async function roundOver(){
-    if(overHandled)return;overHandled=true;
+    if(overHandled)return;overHandled=true;services.music.pause();
     const points=Math.floor(model.score),oldBest=memorySave.best;
     memorySave.best=Math.max(oldBest,points);save();
     el("pause").disabled=true;
@@ -85,12 +90,18 @@ export function mountOrbit(Phaser, services) {
     if(services.native){overlay("ROUND COMPLETE",Math.floor(model.score)+" points",model.lights+" lights collected. Ready for another orbit?","Play again",false);}
   }
   el("main").onclick=async()=>{
+    if(musicEnabled)services.music.unlock();
     if(model.state==="paused"){resume();return;}
     if(model.state==="over"&&!finalized){
       await finishRound();
       if(services.native)return;
     }
     void start();
+  };
+  el("music").onclick=()=>{
+    musicEnabled=!musicEnabled;memorySave.music=musicEnabled;musicLabel();save();
+    services.music.setEnabled(musicEnabled,model.state==="playing");
+    analytics("music_change",{enabled:musicEnabled});
   };
   el("pause").onclick=pause;
   el("sound").onclick=()=>{sound=!sound;memorySave.sound=sound;soundLabel();save();beep(700);analytics("sound_change",{enabled:sound});};
@@ -101,7 +112,7 @@ export function mountOrbit(Phaser, services) {
   };
   el("privacy").onclick=()=>{
     if(model.state==="playing")pause();
-    el("info-text").textContent="Game data: best score, sound choice and round count are saved only in this browser when storage is available. Gameplay events stay in temporary memory and are not transmitted. Production ads are disabled. The browser edition does not request ads; the Android test build includes Google Mobile Ads and UMP consent. The game uses the Phaser library from jsDelivr; this host and CDN process connection data under their own policies. Hosting providers may log requests. Native advertising, UMP consent and a publisher privacy policy are required before monetization.";
+    el("info-text").textContent="Game data: best score, sound/music choices and round count are saved only in this browser when storage is available. Gameplay events stay in temporary memory and are not transmitted. Production ads are disabled. The browser edition does not request ads; the Android test build includes Google Mobile Ads and UMP consent. The game bundles Phaser and synthesizes its original music locally; no music download or streaming service is used. Hosting providers may log requests. Native advertising, UMP consent and a publisher privacy policy are required before monetization.";
     el("info").hidden=false;
   };
   el("info-close").onclick=()=>{el("info").hidden=true;};
@@ -120,7 +131,7 @@ export function mountOrbit(Phaser, services) {
     const privacy=document.createElement("button");privacy.textContent="Ad privacy choices";
     privacy.onclick=()=>{pause();void services.ads.privacy();};
     root.querySelector("footer").append(privacy);
-    root.querySelector("footer span").textContent="Google test ads only · v0.1";
+    root.querySelector("footer span").textContent="Google test ads only · v0.2";
   }
   document.addEventListener("visibilitychange",()=>{if(document.hidden)pause();});
   window.addEventListener("blur",pause);
@@ -191,6 +202,6 @@ export function mountOrbit(Phaser, services) {
   const game=new Phaser.Game({type:Phaser.AUTO,width:400,height:440,parent:el("canvas"),
     backgroundColor:"#090e20",transparent:false,scene:OrbitScene,audio:{noAudio:true},
     render:{antialias:true,roundPixels:false},scale:{mode:Phaser.Scale.NONE},fps:{target:60}});
-  root.addEventListener("orbit-dispose",()=>{game.destroy(true);void audio?.close();});
+  root.addEventListener("orbit-dispose",()=>{game.destroy(true);services.music.dispose();void audio?.close();});
   if(!services.store.available)el("status").textContent="Storage is restricted here. Best score lasts for this open game.";
 }

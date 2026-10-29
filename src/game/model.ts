@@ -3,7 +3,7 @@ export const TAU = Math.PI * 2;
 export const INNER = 86;
 export const OUTER = 140;
 export function difficulty(seconds: number) {
-  return { speed: Math.min(1.8, 0.9 + seconds * 0.009), gap: Math.max(0.82, 1.55 - seconds * 0.006) };
+  return { speed: Math.min(3.2, 1.4 + seconds * 0.025), gap: Math.max(0.5, 1.05 - seconds * 0.01) };
 }
 export interface Gate { id:number; angle:number; lane:number; collected:boolean; checked:boolean }
 export interface Effect { type:"crash"|"collect"; angle:number; radius:number; reward?:number }
@@ -64,7 +64,10 @@ export class OrbitModel {
     this.shield = Math.max(0, this.shield - dt);
     this.spawnIn -= dt;
     if (this.spawnIn <= 0) {
-      this.gates.push({ id: this.nextId++, angle: this.theta + 2.15, lane: this.random() < 0.5 ? 0 : 1, collected: false, checked: false });
+      const previous = this.gates.at(-1);
+      const roll = this.random();
+      const lane = previous ? (roll < 0.72 ? 1 - previous.lane : previous.lane) : (roll < 0.5 ? 0 : 1);
+      this.gates.push({ id: this.nextId++, angle: this.theta + 1.85, lane, collected: false, checked: false });
       this.spawnIn = d.gap;
     }
     const px = Math.cos(this.theta) * this.radius;

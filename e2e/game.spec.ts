@@ -41,3 +41,41 @@ test('320px layout and tutorial',async({page})=>{
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'test-results/mobile-320.png'});
 });
+
+test('original EDM renders real audio and follows pause, mute and saved preference',async({page})=>{
+  await page.addInitScript(()=>{
+    const audit={starts:0,stops:0,peak:0,rms:0,duration:0};
+    (window as unknown as {musicAudit:typeof audit}).musicAudit=audit;
+    const Context=window.AudioContext;
+    window.AudioContext=class extends Context {
+      createBufferSource():AudioBufferSourceNode {
+        const source=super.createBufferSource(),start=source.start.bind(source),stop=source.stop.bind(source);
+        source.start=(...args:Parameters<AudioBufferSourceNode['start']>)=>{
+          const buffer=source.buffer;
+          if(buffer){const data=buffer.getChannelData(0);let sum=0,peak=0;for(let i=0;i<data.length;i++){sum+=data[i]*data[i];peak=Math.max(peak,Math.abs(data[i]));}
+            audit.starts++;audit.peak=peak;audit.rms=Math.sqrt(sum/data.length);audit.duration=buffer.duration;}
+          start(...args);
+        };
+        source.stop=(...args:Parameters<AudioBufferSourceNode['stop']>)=>{audit.stops++;stop(...args);};
+        return source;
+      }
+    };
+  });
+  await page.goto('./');await expect(page.locator('#os-main')).toHaveText('Play');
+  await expect(page.locator('#os-music')).toHaveText('Music on');
+  await page.locator('#os-main').tap();
+  await expect(page.locator('#orbit-shift')).toHaveAttribute('data-music','playing',{timeout:15000});
+  const sample=await page.evaluate(()=>(window as unknown as {musicAudit:{starts:number;stops:number;peak:number;rms:number;duration:number}}).musicAudit);
+  expect(sample.starts).toBe(1);expect(sample.peak).toBeGreaterThan(.05);expect(sample.peak).toBeLessThanOrEqual(.851);
+  expect(sample.rms).toBeGreaterThan(.01);expect(sample.duration).toBeGreaterThan(14);expect(sample.duration).toBeLessThan(15);
+  await page.locator('#os-pause').tap();
+  await expect(page.locator('#orbit-shift')).toHaveAttribute('data-music','paused');
+  await page.locator('#os-main').tap();
+  await expect(page.locator('#orbit-shift')).toHaveAttribute('data-music','playing');
+  await page.locator('#os-music').tap();
+  await expect(page.locator('#orbit-shift')).toHaveAttribute('data-music','off');
+  expect(await page.evaluate(()=>(window as unknown as {musicAudit:{stops:number}}).musicAudit.stops)).toBeGreaterThanOrEqual(2);
+  await page.reload();await expect(page.locator('#os-main')).toHaveText('Play');
+  await expect(page.locator('#os-music')).toHaveText('Music off');
+  await page.locator('#os-main').tap();await expect(page.locator('#orbit-shift')).toHaveAttribute('data-music','off');
+});

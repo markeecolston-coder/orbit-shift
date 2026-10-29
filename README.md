@@ -46,3 +46,11 @@ Keep the dependency lock, run cloud checks on updates, review player feedback an
 Reuse platform services for future games, but require a different core decision and failure structure for each. Cosmetic orbital reskins are not distinct portfolio games.
 
 See docs/CONCEPTS.md, docs/MONETIZATION.md and docs/PLAY-RELEASE.md.
+
+## Harder EDM edition
+
+The course now starts at 1.4 rad/s (previously 0.9), reaches 3.2 rad/s, and tightens gate spacing from 1.05 to 0.5 seconds. Warning distance is 1.85 radians. Gates favor alternating lanes while retaining a clear safe ring. Existing best scores remain saved.
+
+Music is an original eight-bar 132 BPM synth-house loop: four-on-the-floor kick, claps, offbeat hats, bass, chord stabs and an arpeggiated lead with delay. It is synthesized locally with Web Audio, rendered once, and looped without network streaming or external samples. Music defaults on after Play and has its own saved toggle. Effects remain independently controlled by Sound. Music stops on loss, pause, backgrounding or ads and resumes from its position; new rounds restart the track.
+
+Cloud browser tests inspect the actual rendered audio buffer for non-silence, bounded peaks and duration, then check playback, pause/resume, mute and persistence. Automated waveform checks do not establish subjective audio quality.
