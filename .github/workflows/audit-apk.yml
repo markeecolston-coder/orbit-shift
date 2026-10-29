@@ -1,0 +1,34 @@
+name: Audit Android test APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools build-tools;36.0.0'
+      - name: Download and inspect the released APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release download android-test-40822438469 --pattern orbit-shift-test.apk --dir apk
+          SDK_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
+          mkdir -p audit
+          sha256sum apk/orbit-shift-test.apk | tee audit/sha256.txt
+          "$SDK_TOOLS/apksigner" verify --verbose --print-certs apk/orbit-shift-test.apk | tee audit/signature.txt
+          "$SDK_TOOLS/aapt" dump permissions apk/orbit-shift-test.apk | tee audit/permissions.txt
+          "$SDK_TOOLS/aapt" dump badging apk/orbit-shift-test.apk | tee audit/package.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-installation-audit
+          path: audit/
+          if-no-files-found: error
